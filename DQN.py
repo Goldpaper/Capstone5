@@ -16,6 +16,9 @@ from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
+from keras import backend as K
+from tetris import Env
+from collections import deque
 
 EPISODES = 50000
 GAME_VELOCTY = 0.000001
@@ -113,8 +116,8 @@ class DQNAgent:
             return np.argmax(q_value[0])
 
     # 샘플 <s, a, r, s'>을 리플레이 메모리에 저장
-    def append_sample(self, history, action, reward, next_history, dead):
-        self.memory.append((history, action, reward, next_history, dead))
+    def append_sample(self, history, action, reward, next_history):
+        self.memory.append((history, action, reward, next_history))
 
     # 리플레이 메모리에서 무작위로 추출한 배치로 모델 학습
     def train_model(self):
@@ -297,7 +300,7 @@ if __name__ == "__main__":
     action_time = time.time()
     global_step = 0
 
-    for epi in range(EPISODE):
+    for epi in range(EPISODES):
         step = 0
         while True:
             end_time = time.time()
