@@ -10,7 +10,8 @@
 #기타
     Reference :
         Python 3.6
-        Tensorflow==1.7.0
-        Numpy==1.14.0
-        Keras==2.1.5
-        pygame==1.9.3
+        Tensorflow>=1.7.0
+        Numpy>=1.14.0
+        Keras>=2.1.5
+        pygame>=1.9.3
+        (설치 방법 : pip install -r requirements.txt)
