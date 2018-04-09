@@ -3,23 +3,25 @@
 Tetris 강화학습 실행하는 코드
 
 SourceCode : www.github.com/goldpaper/Capstone5
+
+코드에서 주석 친 부분은 Atari게임 오픈소스입니다. 작업 시 참고 바랍니다.
 """
+import tensorflow as tf
+import numpy as np
+import random
+import time
+import copy
 
 from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
-from skimage.transform import resize
-from skimage.color import rgb2gray
-from collections import deque
-from keras import backend as K
-import tensorflow as tf
-import numpy as np
-import random
-import gym
 
 EPISODES = 50000
+GAME_VELOCTY = 0.000001
+ACTION_VELCOCITY = 0.000001
 
+ret = [[0] * 84 for _ in range(84)]
 
 # 브레이크아웃에서의 DQN 에이전트
 class DQNAgent:
@@ -36,7 +38,7 @@ class DQNAgent:
         self.epsilon_decay_step = (self.epsilon_start - self.epsilon_end) \
                                   / self.exploration_steps
         self.batch_size = 32
-        self.train_start = 50000
+        self.train_start = 20000    #학습 시작 메모리 크기를 20000으로 수정
         self.update_target_rate = 10000
         self.discount_factor = 0.99
         # 리플레이 메모리, 최대 크기 400000
@@ -169,13 +171,26 @@ class DQNAgent:
         return summary_placeholders, update_ops, summary_op
 
 
+"""
 # 학습속도를 높이기 위해 흑백화면으로 전처리
 def pre_processing(observe):
     processed_observe = np.uint8(
         resize(rgb2gray(observe), (84, 84), mode='constant') * 255)
     return processed_observe
+"""
+def pre_processing(curr_map,curr_block_pos):
+    copy_map = copy.deepcopy(curr_map)
+    ny, nx = 4.20, 10.5
+    for n in curr_block_pos:
+        copy_map[n[0]][n[1]] = 1
+    for n in range(20):
+        for m in range(4):
+            for i in range(int(n * ny), int(n * ny + ny)):
+                for j in range(int(m * nx), int(m * nx + nx)):
+                    ret[i][j] = copy_map[n][m]
+    return ret
 
-
+"""
 if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
     env = gym.make('BreakoutDeterministic-v4')
@@ -268,3 +283,71 @@ if __name__ == "__main__":
         # 1000 에피소드마다 모델 저장
         if e % 1000 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
+"""
+
+if __name__ == "__main__":
+    tetris = Env()
+    agent = DQNAgent(action_size=3)
+
+    state = pre_processing(tetris.map, tetris._get_curr_block_pos())
+    history = np.stack((state, state, state, state), axis = 2)
+    history = np.reshape([history], (1, 84, 84, 4))
+
+    start_time = time.time()
+    action_time = time.time()
+    global_step = 0
+
+    for epi in range(EPISODE):
+        step = 0
+        while True:
+            end_time = time.time()
+            if end_time - action_time >= ACTION_VELCOCITY:
+                # 바로 전 4개의 상태로 행동을 선택
+                global_step += 1
+                step += 1
+                action = agent.get_action(history)
+                reward = tetris.step(action)
+
+                # 다음 상태 전처리
+                next_state = pre_processing(tetris.map, tetris._get_curr_block_pos())
+                next_state = np.reshape([next_state], (1, 84, 84, 1))
+                next_history = np.append(next_state, history[:, :, :, :3], axis=3)
+
+                agent.avg_q_max += np.amax(agent.model.predict(np.float32(history / 255.))[0])
+                agent.append_sample(history, action, reward, next_history)
+
+                if len(agent.memory) >= agent.train_start:
+                    agent.train_model()
+
+                # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
+                if global_step % agent.update_target_rate == 0:
+                    agent.update_target_model()
+
+                history = next_history
+
+                action_time = time.time()
+
+            if end_time - start_time >= GAME_VELOCTY:
+                # game over
+                if tetris.is_game_end():
+                    '''
+                    if global_step > agent.train_start:
+                        stats = [tetris.score, agent.avg_q_max / float(global_step), global_step,
+                                 agent.avg_loss / float(global_step)]
+                        for i in range(len(stats)):
+                            agent.sess.run(agent.update_ops[i], feed_dict={
+                                agent.summary_placeholders[i]: float(stats[i])
+                            })
+                        summary_str = agent.sess.run(agent.summary_op)
+                        agent.summary_writer.add_summary(summary_str, epi + 1)
+                    '''
+                    print('episode:{}, score:{}, epsilon:{}, global step:{}, avg_qmax:{}, memory:{}'.
+                          format(epi, tetris.score, agent.epsilon, global_step,
+                                 agent.avg_q_max / float(step), len(agent.memory)))
+                    tetris.reset()
+                    agent.avg_q_max, agent.avg_loss = 0, 0
+                    break
+                else:
+                    buffer = tetris.step(0)
+                start_time = time.time()
+
