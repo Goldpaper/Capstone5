@@ -14,4 +14,3 @@
         tensorflow>=1.0.0
         pygame >=1.9.3
         (설치 방법 : pip install -r requirements.txt)
-
