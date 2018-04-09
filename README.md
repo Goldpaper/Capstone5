@@ -9,9 +9,13 @@
 
 #기타
     Reference :
-        Python 3.6
-        Tensorflow>=1.7.0
-        Numpy>=1.14.0
-        Keras>=2.1.5
-        pygame>=1.9.3
+        Keras>=2.0.3
+        numpy>=1.12.1
+        pandas>=0.19.2
+        matplotlib>=2.0.0
+        tensorflow>=1.0.0
+        Pillow>=4.1.0
+        gym>=0.8.1
+        h5py>=2.7.0
+        scikit-image>=0.13.0
         (설치 방법 : pip install -r requirements.txt)
