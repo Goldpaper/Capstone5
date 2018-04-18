@@ -11,13 +11,17 @@ import numpy as np
 import random
 import time
 import copy
+from PyQt5.QtWidgets import QMainWindow, QFrame, QDesktopWidget, QApplication
+from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
+from PyQt5.QtGui import QPainter, QColor, QPalette
+import sys, random
 
 from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
 from keras import backend as K
-from tetris import Env
+from tetris_qt import Tetris
 from collections import deque
 
 EPISODES = 50000
@@ -53,6 +57,7 @@ class DQNAgent:
         self.update_target_model()
 
         self.optimizer = self.optimizer()
+
 
         # 텐서보드 설정
         self.sess = tf.InteractiveSession()
@@ -289,7 +294,10 @@ if __name__ == "__main__":
 """
 
 if __name__ == "__main__":
-    tetris = Env()
+    app = QApplication([])  # 앱 생성
+    tetris = Tetris()  # 테트리스 객체 생성
+    #sys.exit(app.exec_())  # 앱 실행
+    #tetris = Tetris()
     agent = DQNAgent(action_size=3)
 
     state = pre_processing(tetris.map, tetris._get_curr_block_pos())
@@ -330,10 +338,13 @@ if __name__ == "__main__":
 
                 action_time = time.time()
 
+            if step % 10 == 0:
+                agent.model.save_weights("./save_model/breakout_dqn.h5")
+
             if end_time - start_time >= GAME_VELOCTY:
                 # game over
                 if tetris.is_game_end():
-                    '''
+
                     if global_step > agent.train_start:
                         stats = [tetris.score, agent.avg_q_max / float(global_step), global_step,
                                  agent.avg_loss / float(global_step)]
@@ -343,7 +354,7 @@ if __name__ == "__main__":
                             })
                         summary_str = agent.sess.run(agent.summary_op)
                         agent.summary_writer.add_summary(summary_str, epi + 1)
-                    '''
+
                     print('episode:{}, score:{}, epsilon:{}, global step:{}, avg_qmax:{}, memory:{}'.
                           format(epi, tetris.score, agent.epsilon, global_step,
                                  agent.avg_q_max / float(step), len(agent.memory)))
@@ -353,4 +364,7 @@ if __name__ == "__main__":
                 else:
                     buffer = tetris.step(0)
                 start_time = time.time()
+
+        if epi % 10 == 0:
+            agent.model.save_weights("./save_model/breakout_dqn.h5")
 

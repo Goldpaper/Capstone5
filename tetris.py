@@ -17,7 +17,7 @@ PhotoImage = ImageTk.PhotoImage
 np.random.seed(1)
 UNIT = 30  # 픽셀 수
 HEIGHT = 20  # 그리드 세로
-WIDTH = 4   # 그리드 가로
+WIDTH = 10   # 그리드 가로
 MID = (WIDTH / 2 - 1) * UNIT # 블록 시작 점
 dy = [UNIT, 0, 0]       # ay
 # ction에 해당하는 y좌표 plus값
