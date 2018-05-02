@@ -71,7 +71,7 @@ class DQNAgent:
             self.model.load_weights("./save_model/breakout_dqn.h5")
         '''
 
-    # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
+        # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
         a = K.placeholder(shape=(None,), dtype='int32')
         y = K.placeholder(shape=(None,), dtype='float32')
@@ -86,7 +86,8 @@ class DQNAgent:
         linear_part = error - quadratic_part
         loss = K.mean(0.5 * K.square(quadratic_part) + linear_part)
 
-        optimizer = RMSprop(lr=0.00025, epsilon=0.01)
+        # lr = 0.00025
+        optimizer = RMSprop(lr=0.001, epsilon=0.01)
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
         train = K.function([self.model.input, a, y], [loss], updates=updates)
 
@@ -100,7 +101,7 @@ class DQNAgent:
         model.add(Conv2D(64, (4, 4), strides=(2, 2), activation='relu'))
         model.add(Conv2D(64, (3, 3), strides=(1, 1), activation='relu'))
         model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
+        model.add(Dense(50, activation='relu'))
         model.add(Dense(self.action_size))
         model.summary()
         return model
@@ -141,7 +142,6 @@ class DQNAgent:
             next_history[i] = np.float32(mini_batch[i][3] / 255.)
             action.append(mini_batch[i][1])
             reward.append(mini_batch[i][2])
-            #dead.append(mini_batch[i][4])
 
         target_value = self.target_model.predict(next_history)
 
@@ -162,7 +162,7 @@ class DQNAgent:
         tf.summary.scalar('Average Max Q/Episode', episode_avg_max_q)
         tf.summary.scalar('Duration/Episode', episode_duration)
         tf.summary.scalar('Average Loss/Episode', episode_avg_loss)
-
+        tf.train.AdamOptimizer
         summary_vars = [episode_total_reward, episode_avg_max_q,
                         episode_duration, episode_avg_loss]
         summary_placeholders = [tf.placeholder(tf.float32) for _ in
@@ -180,6 +180,7 @@ def pre_processing(observe):
         resize(rgb2gray(observe), (84, 84), mode='constant') * 255)
     return processed_observe
 """
+
 def pre_processing(curr_map,curr_block_pos):
     copy_map = copy.deepcopy(curr_map)
     ny, nx = 4.20, 10.5
