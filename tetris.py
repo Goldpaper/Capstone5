@@ -4,7 +4,6 @@ Tetris 프로그램 실행 및 화면 구성 관리 코드
 
 SourceCode : www.github.com/goldpaper/Capstone5
 
-
  => OpenSource 테트리스 프로그램입니다. 추후 수정 될 예정입니다.
 """
 
