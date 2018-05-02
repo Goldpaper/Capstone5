@@ -1,9 +1,7 @@
 """
 인하대학교 컴퓨터공확과 컴퓨터 종합설계 프로젝트 5팀
 Tetris 강화학습 실행하는 코드
-
 SourceCode : www.github.com/goldpaper/Capstone5
-
 코드에서 주석 친 부분은 Atari게임 오픈소스입니다. 작업 시 참고 바랍니다.
 """
 import tensorflow as tf
@@ -16,6 +14,9 @@ from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
+from keras import backend as K
+from tetris import Env
+from collections import deque
 
 EPISODES = 50000
 GAME_VELOCTY = 0.000001
@@ -42,7 +43,7 @@ class DQNAgent:
         self.update_target_rate = 10000
         self.discount_factor = 0.99
         # 리플레이 메모리, 최대 크기 400000
-        self.memory = deque(maxlen=400000)
+        self.memory = deque(maxlen=20000)
         self.no_op_steps = 30
         # 모델과 타겟모델을 생성하고 타겟모델 초기화
         self.model = self.build_model()
@@ -50,20 +51,23 @@ class DQNAgent:
         self.update_target_model()
 
         self.optimizer = self.optimizer()
+        self.avg_q_max, self.avg_loss = 0, 0
 
+        """
         # 텐서보드 설정
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
-
+        
         self.avg_q_max, self.avg_loss = 0, 0
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
             'summary/breakout_dqn', self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-
+        
         if self.load_model:
             self.model.load_weights("./save_model/breakout_dqn.h5")
+        """
 
     # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
@@ -80,7 +84,7 @@ class DQNAgent:
         linear_part = error - quadratic_part
         loss = K.mean(0.5 * K.square(quadratic_part) + linear_part)
 
-        optimizer = RMSprop(lr=0.00025, epsilon=0.01)
+        optimizer = RMSprop(lr=0.001, epsilon=0.01)
         updates = optimizer.get_updates(self.model.trainable_weights, [], loss)
         train = K.function([self.model.input, a, y], [loss], updates=updates)
 
@@ -94,7 +98,7 @@ class DQNAgent:
         model.add(Conv2D(64, (4, 4), strides=(2, 2), activation='relu'))
         model.add(Conv2D(64, (3, 3), strides=(1, 1), activation='relu'))
         model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
+        model.add(Dense(50, activation='relu'))
         model.add(Dense(self.action_size))
         model.summary()
         return model
@@ -113,8 +117,8 @@ class DQNAgent:
             return np.argmax(q_value[0])
 
     # 샘플 <s, a, r, s'>을 리플레이 메모리에 저장
-    def append_sample(self, history, action, reward, next_history, dead):
-        self.memory.append((history, action, reward, next_history, dead))
+    def append_sample(self, history, action, reward, next_history):
+        self.memory.append((history, action, reward, next_history))
 
     # 리플레이 메모리에서 무작위로 추출한 배치로 모델 학습
     def train_model(self):
@@ -128,23 +132,18 @@ class DQNAgent:
         next_history = np.zeros((self.batch_size, self.state_size[0],
                                  self.state_size[1], self.state_size[2]))
         target = np.zeros((self.batch_size,))
-        action, reward, dead = [], [], []
+        action, reward = [], []
 
         for i in range(self.batch_size):
             history[i] = np.float32(mini_batch[i][0] / 255.)
             next_history[i] = np.float32(mini_batch[i][3] / 255.)
             action.append(mini_batch[i][1])
             reward.append(mini_batch[i][2])
-            dead.append(mini_batch[i][4])
 
         target_value = self.target_model.predict(next_history)
 
         for i in range(self.batch_size):
-            if dead[i]:
-                target[i] = reward[i]
-            else:
-                target[i] = reward[i] + self.discount_factor * \
-                                        np.amax(target_value[i])
+            target[i] = reward[i] + self.discount_factor * np.amax(target_value[i])
 
         loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
@@ -195,29 +194,22 @@ if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
     env = gym.make('BreakoutDeterministic-v4')
     agent = DQNAgent(action_size=3)
-
     scores, episodes, global_step = [], [], 0
-
     for e in range(EPISODES):
         done = False
         dead = False
-
         step, score, start_life = 0, 0, 5
         observe = env.reset()
-
         for _ in range(random.randint(1, agent.no_op_steps)):
             observe, _, _, _ = env.step(1)
-
         state = pre_processing(observe)
         history = np.stack((state, state, state, state), axis=2)
         history = np.reshape([history], (1, 84, 84, 4))
-
         while not done:
             if agent.render:
                 env.render()
             global_step += 1
             step += 1
-
             # 바로 전 4개의 상태로 행동을 선택
             action = agent.get_action(history)
             # 1: 정지, 2: 왼쪽, 3: 오른쪽
@@ -227,39 +219,30 @@ if __name__ == "__main__":
                 real_action = 2
             else:
                 real_action = 3
-
             # 선택한 행동으로 환경에서 한 타임스텝 진행
             observe, reward, done, info = env.step(real_action)
             # 각 타임스텝마다 상태 전처리
             next_state = pre_processing(observe)
             next_state = np.reshape([next_state], (1, 84, 84, 1))
             next_history = np.append(next_state, history[:, :, :, :3], axis=3)
-
             agent.avg_q_max += np.amax(
                 agent.model.predict(np.float32(history / 255.))[0])
-
             if start_life > info['ale.lives']:
                 dead = True
                 start_life = info['ale.lives']
-
             reward = np.clip(reward, -1., 1.)
             # 샘플 <s, a, r, s'>을 리플레이 메모리에 저장 후 학습
             agent.append_sample(history, action, reward, next_history, dead)
-
             if len(agent.memory) >= agent.train_start:
                 agent.train_model()
-
             # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
             if global_step % agent.update_target_rate == 0:
                 agent.update_target_model()
-
             score += reward
-
             if dead:
                 dead = False
             else:
                 history = next_history
-
             if done:
                 # 각 에피소드 당 학습 정보를 기록
                 if global_step > agent.train_start:
@@ -271,15 +254,12 @@ if __name__ == "__main__":
                         })
                     summary_str = agent.sess.run(agent.summary_op)
                     agent.summary_writer.add_summary(summary_str, e + 1)
-
                 print("episode:", e, "  score:", score, "  memory length:",
                       len(agent.memory), "  epsilon:", agent.epsilon,
                       "  global_step:", global_step, "  average_q:",
                       agent.avg_q_max / float(step), "  average loss:",
                       agent.avg_loss / float(step))
-
                 agent.avg_q_max, agent.avg_loss = 0, 0
-
         # 1000 에피소드마다 모델 저장
         if e % 1000 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
@@ -297,7 +277,7 @@ if __name__ == "__main__":
     action_time = time.time()
     global_step = 0
 
-    for epi in range(EPISODE):
+    for epi in range(EPISODES):
         step = 0
         while True:
             end_time = time.time()
@@ -350,4 +330,3 @@ if __name__ == "__main__":
                 else:
                     buffer = tetris.step(0)
                 start_time = time.time()
-
