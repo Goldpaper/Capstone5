@@ -6,24 +6,26 @@ SourceCode : www.github.com/goldpaper/Capstone5
 
 코드에서 주석 친 부분은 Atari게임 오픈소스입니다. 작업 시 참고 바랍니다.
 """
+import time
+import copy
 import tensorflow as tf
 import numpy as np
 import random
-import time
-import copy
-
+from tetris import Env
+from collections import deque
+from keras import backend as K
 from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
 
-EPISODES = 50000
+EPISODE = 50000
 GAME_VELOCTY = 0.000001
 ACTION_VELCOCITY = 0.000001
 
 ret = [[0] * 84 for _ in range(84)]
 
-# 브레이크아웃에서의 DQN 에이전트
+
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
@@ -38,11 +40,11 @@ class DQNAgent:
         self.epsilon_decay_step = (self.epsilon_start - self.epsilon_end) \
                                   / self.exploration_steps
         self.batch_size = 32
-        self.train_start = 20000    #학습 시작 메모리 크기를 20000으로 수정
+        self.train_start = 20000
         self.update_target_rate = 10000
         self.discount_factor = 0.99
         # 리플레이 메모리, 최대 크기 400000
-        self.memory = deque(maxlen=400000)
+        self.memory = deque(maxlen=20000)
         self.no_op_steps = 30
         # 모델과 타겟모델을 생성하고 타겟모델 초기화
         self.model = self.build_model()
@@ -51,11 +53,14 @@ class DQNAgent:
 
         self.optimizer = self.optimizer()
 
+        self.avg_q_max, self.avg_loss = 0, 0
+
+        '''
         # 텐서보드 설정
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
 
-        self.avg_q_max, self.avg_loss = 0, 0
+
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(
@@ -64,6 +69,7 @@ class DQNAgent:
 
         if self.load_model:
             self.model.load_weights("./save_model/breakout_dqn.h5")
+        '''
 
     # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
@@ -113,8 +119,8 @@ class DQNAgent:
             return np.argmax(q_value[0])
 
     # 샘플 <s, a, r, s'>을 리플레이 메모리에 저장
-    def append_sample(self, history, action, reward, next_history, dead):
-        self.memory.append((history, action, reward, next_history, dead))
+    def append_sample(self, history, action, reward, next_history):
+        self.memory.append((history, action, reward, next_history))
 
     # 리플레이 메모리에서 무작위로 추출한 배치로 모델 학습
     def train_model(self):
@@ -128,23 +134,19 @@ class DQNAgent:
         next_history = np.zeros((self.batch_size, self.state_size[0],
                                  self.state_size[1], self.state_size[2]))
         target = np.zeros((self.batch_size,))
-        action, reward, dead = [], [], []
+        action, reward = [], []
 
         for i in range(self.batch_size):
             history[i] = np.float32(mini_batch[i][0] / 255.)
             next_history[i] = np.float32(mini_batch[i][3] / 255.)
             action.append(mini_batch[i][1])
             reward.append(mini_batch[i][2])
-            dead.append(mini_batch[i][4])
+            #dead.append(mini_batch[i][4])
 
         target_value = self.target_model.predict(next_history)
 
         for i in range(self.batch_size):
-            if dead[i]:
-                target[i] = reward[i]
-            else:
-                target[i] = reward[i] + self.discount_factor * \
-                                        np.amax(target_value[i])
+            target[i] = reward[i] + self.discount_factor * np.amax(target_value[i])
 
         loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
