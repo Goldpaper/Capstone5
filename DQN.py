@@ -19,6 +19,7 @@ from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
+from keras.utils import np_utils
 
 EPISODE = 50000
 GAME_VELOCTY = 0.000001
@@ -30,7 +31,7 @@ ret = [[0] * 84 for _ in range(84)]
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
-        self.load_model = True
+        #self.load_model = True
         # 상태와 행동의 크기 정의
         self.state_size = (84, 84, 4)
         self.action_size = action_size
@@ -51,7 +52,7 @@ class DQNAgent:
         #감가
         self.discount_factor = 0.99
         # 리플레이 메모리, 최대 크기 400000
-        self.memory = deque(maxlen=400000)
+        self.memory = deque(maxlen=40000)
         self.no_op_steps = 30
         # 모델과 타겟모델을 생성하고 타겟모델 초기화
         self.model = self.build_model()
@@ -66,18 +67,19 @@ class DQNAgent:
         # 텐서보드 설정
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
-
+        '''
 
         self.summary_placeholders, self.update_ops, self.summary_op = \
             self.setup_summary()
-        self.summary_writer = tf.summary.FileWriter(
-            'summary/breakout_dqn', self.sess.graph)
-        self.sess.run(tf.global_variables_initializer())
+        #self.summary_writer = tf.summary.FileWriter(
+        #    'summary/breakout_dqn', self.sess.graph)
+        #self.sess.run(tf.global_variables_initializer())
 
         if self.load_model:
             self.model.load_weights("./save_model/breakout_dqn.h5")
-        '''
 
+    def load_model(self, filename):
+        self.model.load_weights(filename)
 
         # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
@@ -298,9 +300,10 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
-    # env = gym.make('BreakoutDeterministic-v4')
     tetris = Env()
     agent = DQNAgent(action_size=3)
+    agent.load_model("./save_model/breakout_dqn.h5")
+    """agent.predict_classes("./save_model/breakout_dqn.h5")"""
 
     #state 및 history 정의
     state = pre_processing(tetris.map, tetris._get_curr_block_pos())
@@ -314,7 +317,7 @@ if __name__ == "__main__":
     for epi in range(EPISODE):
         step = 0
         #모델 저장하기
-        if step % 10 == 0:
+        if epi % 50 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
         while True:
             end_time = time.time()
