@@ -313,7 +313,8 @@ if __name__ == "__main__":
 
     for epi in range(EPISODE):
         step = 0
-        if step % 100 == 0:
+        #모델 저장하기
+        if step % 10 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
         while True:
             end_time = time.time()
