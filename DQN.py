@@ -6,6 +6,7 @@ SourceCode : www.github.com/goldpaper/Capstone5
 
 코드에서 주석 친 부분은 Atari게임 오픈소스입니다. 작업 시 참고 바랍니다.
 """
+import gym
 import time
 import copy
 import tensorflow as tf
@@ -29,22 +30,28 @@ ret = [[0] * 84 for _ in range(84)]
 class DQNAgent:
     def __init__(self, action_size):
         self.render = False
-        self.load_model = False
+        self.load_model = True
         # 상태와 행동의 크기 정의
         self.state_size = (84, 84, 4)
         self.action_size = action_size
         # DQN 하이퍼파라미터
         self.epsilon = 1.
+        #입실론 시작, 종료 값
         self.epsilon_start, self.epsilon_end = 1.0, 0.1
+        #입실론은 1부터 0.1까지 1000000 스텝동안 감소
         self.exploration_steps = 1000000.
         self.epsilon_decay_step = (self.epsilon_start - self.epsilon_end) \
                                   / self.exploration_steps
+        #미니 배치 크기
         self.batch_size = 32
-        self.train_start = 20000
+        #학습 시작 (50000스텝 후)
+        self.train_start = 50000
+        #타깃 모델 업데이트 주기
         self.update_target_rate = 10000
+        #감가
         self.discount_factor = 0.99
         # 리플레이 메모리, 최대 크기 400000
-        self.memory = deque(maxlen=20000)
+        self.memory = deque(maxlen=400000)
         self.no_op_steps = 30
         # 모델과 타겟모델을 생성하고 타겟모델 초기화
         self.model = self.build_model()
@@ -70,6 +77,7 @@ class DQNAgent:
         if self.load_model:
             self.model.load_weights("./save_model/breakout_dqn.h5")
         '''
+
 
         # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
@@ -289,9 +297,12 @@ if __name__ == "__main__":
 """
 
 if __name__ == "__main__":
+    # 환경과 DQN 에이전트 생성
+    # env = gym.make('BreakoutDeterministic-v4')
     tetris = Env()
     agent = DQNAgent(action_size=3)
 
+    #state 및 history 정의
     state = pre_processing(tetris.map, tetris._get_curr_block_pos())
     history = np.stack((state, state, state, state), axis = 2)
     history = np.reshape([history], (1, 84, 84, 4))
@@ -302,6 +313,8 @@ if __name__ == "__main__":
 
     for epi in range(EPISODE):
         step = 0
+        if step % 100 == 0:
+            agent.model.save_weights("./save_model/breakout_dqn.h5")
         while True:
             end_time = time.time()
             if end_time - action_time >= ACTION_VELCOCITY:
