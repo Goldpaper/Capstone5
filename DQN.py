@@ -1,10 +1,10 @@
 """
 인하대학교 컴퓨터공확과 컴퓨터 종합설계 프로젝트 5팀
-Tetris 강화학습 실행하는 코드
+강화학습 테트리스 구현
 
 SourceCode : www.github.com/goldpaper/Capstone5
 
-코드에서 주석 친 부분은 Atari게임 오픈소스입니다. 작업 시 참고 바랍니다.
+코드에서 주석 친 부분은 Atari게임 오픈소스입니다.
 """
 import time
 import copy
