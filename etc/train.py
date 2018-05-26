@@ -2,7 +2,6 @@
 # Run this file to train a model.
 
 import argparse
-import math
 import random
 import time
 import warnings
