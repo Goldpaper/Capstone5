@@ -1,25 +1,15 @@
-"""
-인하대학교 컴퓨터공확과 컴퓨터 종합설계 프로젝트 5팀
-강화학습 테트리스 구현
-
-SourceCode : www.github.com/goldpaper/Capstone5
-
-코드에서 주석 친 부분은 Atari게임 오픈소스입니다.
-"""
-import gym
 import time
 import copy
 import tensorflow as tf
 import numpy as np
 import random
-from tetris import Env
+from tetris_dqn import Env
 from collections import deque
 from keras import backend as K
 from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
-from keras.utils import np_utils
 
 EPISODE = 50000
 GAME_VELOCTY = 0.000001

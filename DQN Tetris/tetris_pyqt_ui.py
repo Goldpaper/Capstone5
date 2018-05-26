@@ -221,5 +221,5 @@ class Shape(object):  # 모양의 좌표 관련 정보를 담은 클래스.
 if __name__ == '__main__':
    app = QApplication([])  # 앱 생성
    tetris = Tetris()  # 테트리스 객체 생성
-   sys.exit(app.exec_())  #
+   sys.exit(app.exec_())  # 테트리스 실행
 

@@ -1,11 +1,4 @@
 class Getch(object):
-    '''Allows reading character-by-character using Unix / Windows APIs.
-    See the StackOverflow answer here:
-        https://stackoverflow.com/questions/510357/
-    Usage:
-        getch = Getch()     # Initializes the caller.
-        new_char = getch()  # Calls the function.
-    '''
     def __init__(self):
         try:
             self.impl = self.init_windows()

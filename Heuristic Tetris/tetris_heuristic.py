@@ -3,8 +3,6 @@
 
 import numpy as np
 import random
-import sys, random
-import pygame
 import time
 
 class Shapes(object):

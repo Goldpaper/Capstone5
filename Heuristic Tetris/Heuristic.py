@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 # Run this file to run the engine according to an analytic policy.
 
-import argparse
-import math
-import random
 import time
-import warnings
-import os
 
-import numpy as np
-
-from engine import TetrisEngine
+from tetris_heuristic import TetrisEngine
 ##from tetris_qt import *
 
 #결과 높이를 기반으로 점수를 계산합니다.
@@ -108,9 +101,8 @@ def compute_helper(engine, shape, anchor, action):
 #최적화된 steps 계산
 def compute_optimal_steps(engine):
     actions = []
-    min_score = 10000000  # Very large number.
+    min_score = 10000000  # 매우 큰 숫자
     board = engine.board
-##    board = tetris.tboard1()
     possible_pre_actions = [
         [],
         [engine.actions.ROTATE_LEFT],
@@ -121,7 +113,7 @@ def compute_optimal_steps(engine):
     for pre_actions in possible_pre_actions:
         shape, anchor = engine.shape, engine.anchor
 
-        # Applies the pre-actions.
+        # pre-action을 적용합니다.
         for a in pre_actions:
             shape, anchor = engine.actions[a](shape, anchor, board)
             shape, anchor = engine.actions.soft_drop(shape, anchor, board)
