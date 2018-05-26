@@ -65,8 +65,8 @@ class DQNAgent:
         #    'summary/breakout_dqn', self.sess.graph)
         #self.sess.run(tf.global_variables_initializer())
 
-        if self.load_model:
-            self.model.load_weights("./save_model/breakout_dqn.h5")
+        #if self.load_model:
+        #    self.model.load_weights("./save_model/breakout_dqn.h5")
 
     def load_model(self, filename):
         self.model.load_weights(filename)
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
     tetris = Env()
     agent = DQNAgent(action_size=3)
-    agent.load_model("./save_model/breakout_dqn.h5")
+    #agent.load_model("./save_model/breakout_dqn.h5")
     """agent.predict_classes("./save_model/breakout_dqn.h5")"""
 
     #state 및 history 정의
