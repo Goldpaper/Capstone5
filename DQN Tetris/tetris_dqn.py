@@ -1,8 +1,12 @@
 """
-인하대학교 컴퓨터공확과 컴퓨터 종합설계 프로젝트 5팀
+인하대학교 컴퓨터공확과 캡스톤 5팀
+ => OpenSource 테트리스 프로그램입니다.
 Tetris 프로그램 실행 및 화면 구성 관리 코드
 SourceCode : www.github.com/goldpaper/Capstone5
- => OpenSource 테트리스 프로그램입니다. 추후 수정 될 예정입니다.
+
+블럭 파괴 시 : (라인당) 10점
+빈칸 생성시 패널티 1점, 빈칸 제거시 보상 1점
+높이에 따른 보상 (0 ~ 1점을 2차함수 기반으로 적립)
 """
 
 import time
@@ -44,6 +48,8 @@ class Env(tk.Tk):
         self.zero_action = 0
         self.move_action = 0
         self.rote_action = 0
+        #테트리스 화면 hole 갯수 파악
+        self.hole=0
         for i in range(HEIGHT):
             if i <= 2:
                 self.score_weight.append(0.0)
@@ -379,12 +385,22 @@ class Env(tk.Tk):
                 y = int(s[1] / UNIT)
                 x = int(s[0] / UNIT)
 
+                # Heuristic1 (높이에 따른 보상)
                 self.score += self.score_weight[y]
                 ret += self.score_weight[y]
                 self.map[y][x] = 1
 
-            #heuristic1 (높이에 따른 보상)
-            self.score += ((20 - y) * (20 - y)) / 400
+            # Heuristic1 (높이에 따른 보상 차등 추가)
+            self.score = (y * y) / 400
+
+            # Heuristic2 (빈칸에 따른 점수)
+            temp_hole = 0;
+            for j in range(0, 18):
+                for k in range(0, 10):
+                    if self.map[j][k] > self.map[j+1][k]:
+                        temp_hole = temp_hole + 1
+            self.score += self.hole - temp_hole
+            self.hole = temp_hole
 
             # 한줄이 꽉차있으면 비워주고 점수를 더해줌
             break_cnt = 0
@@ -398,17 +414,11 @@ class Env(tk.Tk):
                 for m in range(WIDTH):
                     for n in range(y , 2, -1):
                         self.map[n][m] = self.map[n-1][m]
-            self.score += PLUS_SCORE * break_cnt * 10
-            #휴리스틱 기법 적용
-            """for k, j in enumerate(self.map):
-                buf = 0
-                for l, m in enumerate(j):
-                    if l in
-            """
-
+            self.score += PLUS_SCORE * break_cnt
             ret += PLUS_SCORE * break_cnt
             self.canvas.itemconfigure(self.score_board,
                                   text = basic_score_str + str(int(self.score)))
+            print(ret)
             return ret
 
         # move

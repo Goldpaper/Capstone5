@@ -302,12 +302,13 @@ if __name__ == "__main__":
             agent.model.save_weights("./save_model/breakout_dqn.h5")
             print("save model")
         while True:
-            #테트리스 모양 출력
             """
-            for i in range(1, 20):
+            #테트리스 모양 출력
+            for i in range(0, 20):
                 print(tetris.map[i])
             print('\n\n')
             """
+
             end_time = time.time()
             if end_time - action_time >= ACTION_VELCOCITY:
                 # 바로 전 4개의 상태로 행동을 선택
