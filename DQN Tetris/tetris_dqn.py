@@ -383,7 +383,10 @@ class Env(tk.Tk):
                 ret += self.score_weight[y]
                 self.map[y][x] = 1
 
-                # 한줄이 꽉차있으면 비워주고 점수를 더해줌
+            #heuristic1 (높이에 따른 보상)
+            self.score += ((20 - y) * (20 - y)) / 400
+
+            # 한줄이 꽉차있으면 비워주고 점수를 더해줌
             break_cnt = 0
             while True:
                 y = self.is_map_horizon()
@@ -395,7 +398,14 @@ class Env(tk.Tk):
                 for m in range(WIDTH):
                     for n in range(y , 2, -1):
                         self.map[n][m] = self.map[n-1][m]
-            self.score += PLUS_SCORE * break_cnt
+            self.score += PLUS_SCORE * break_cnt * 10
+            #휴리스틱 기법 적용
+            """for k, j in enumerate(self.map):
+                buf = 0
+                for l, m in enumerate(j):
+                    if l in
+            """
+
             ret += PLUS_SCORE * break_cnt
             self.canvas.itemconfigure(self.score_board,
                                   text = basic_score_str + str(int(self.score)))
@@ -415,10 +425,11 @@ class Env(tk.Tk):
         for n in range(1):
             for m in range(WIDTH):
                 if self.map[n][m] == 1:
-                    #print("씨발")
                     return True
         return False
 
     def render(self):
         # 게임 속도 조정
         self.update()
+
+
