@@ -10,7 +10,11 @@ from keras.layers.convolutional import Conv2D
 from keras.layers import Dense, Flatten
 from keras.optimizers import RMSprop
 from keras.models import Sequential
+from keras.utils import np_utils
 
+import matplotlib.pyplot as plt
+
+import numpy as np
 EPISODE = 50000
 GAME_VELOCTY = 0.000001
 ACTION_VELCOCITY = 0.000001
@@ -20,6 +24,7 @@ ret = [[0] * 84 for _ in range(84)]
 
 class DQNAgent:
     def __init__(self, action_size):
+        #matplotlib.use('Agg')
         self.render = False
         #self.load_model = True
         # 상태와 행동의 크기 정의
@@ -36,7 +41,7 @@ class DQNAgent:
         #미니 배치 크기
         self.batch_size = 32
         #학습 시작 (50000스텝 후)
-        self.train_start = 50000
+        self.train_start = 20000
         #타깃 모델 업데이트 주기
         self.update_target_rate = 10000
         #감가
@@ -65,11 +70,12 @@ class DQNAgent:
         #    'summary/breakout_dqn', self.sess.graph)
         #self.sess.run(tf.global_variables_initializer())
 
-        #if self.load_model:
-        #    self.model.load_weights("./save_model/breakout_dqn.h5")
+#        if self.load_model:
+#            self.model.load_weights("./save_model/breakout_dqn.h5")
+#            print("load weights")
 
-    def load_model(self, filename):
-        self.model.load_weights(filename)
+#    def load_model(self, filename):
+#        self.model.load_weights(filename)
 
         # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의
     def optimizer(self):
@@ -185,7 +191,10 @@ def pre_processing(curr_map,curr_block_pos):
     copy_map = copy.deepcopy(curr_map)
     ny, nx = 4.20, 10.5
     for n in curr_block_pos:
-        copy_map[n[0]][n[1]] = 1
+        x = n[0]/30
+        y = n[1]/30
+        copy_map[int(x)][int(y)] = 1
+        #copy_map[n[0]][n[1]] = 1
     for n in range(20):
         for m in range(4):
             for i in range(int(n * ny), int(n * ny + ny)):
@@ -198,29 +207,22 @@ if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
     env = gym.make('BreakoutDeterministic-v4')
     agent = DQNAgent(action_size=3)
-
     scores, episodes, global_step = [], [], 0
-
     for e in range(EPISODES):
         done = False
         dead = False
-
         step, score, start_life = 0, 0, 5
         observe = env.reset()
-
         for _ in range(random.randint(1, agent.no_op_steps)):
             observe, _, _, _ = env.step(1)
-
         state = pre_processing(observe)
         history = np.stack((state, state, state, state), axis=2)
         history = np.reshape([history], (1, 84, 84, 4))
-
         while not done:
             if agent.render:
                 env.render()
             global_step += 1
             step += 1
-
             # 바로 전 4개의 상태로 행동을 선택
             action = agent.get_action(history)
             # 1: 정지, 2: 왼쪽, 3: 오른쪽
@@ -230,39 +232,30 @@ if __name__ == "__main__":
                 real_action = 2
             else:
                 real_action = 3
-
             # 선택한 행동으로 환경에서 한 타임스텝 진행
             observe, reward, done, info = env.step(real_action)
             # 각 타임스텝마다 상태 전처리
             next_state = pre_processing(observe)
             next_state = np.reshape([next_state], (1, 84, 84, 1))
             next_history = np.append(next_state, history[:, :, :, :3], axis=3)
-
             agent.avg_q_max += np.amax(
                 agent.model.predict(np.float32(history / 255.))[0])
-
             if start_life > info['ale.lives']:
                 dead = True
                 start_life = info['ale.lives']
-
             reward = np.clip(reward, -1., 1.)
             # 샘플 <s, a, r, s'>을 리플레이 메모리에 저장 후 학습
             agent.append_sample(history, action, reward, next_history, dead)
-
             if len(agent.memory) >= agent.train_start:
                 agent.train_model()
-
             # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
             if global_step % agent.update_target_rate == 0:
                 agent.update_target_model()
-
             score += reward
-
             if dead:
                 dead = False
             else:
                 history = next_history
-
             if done:
                 # 각 에피소드 당 학습 정보를 기록
                 if global_step > agent.train_start:
@@ -274,15 +267,12 @@ if __name__ == "__main__":
                         })
                     summary_str = agent.sess.run(agent.summary_op)
                     agent.summary_writer.add_summary(summary_str, e + 1)
-
                 print("episode:", e, "  score:", score, "  memory length:",
                       len(agent.memory), "  epsilon:", agent.epsilon,
                       "  global_step:", global_step, "  average_q:",
                       agent.avg_q_max / float(step), "  average loss:",
                       agent.avg_loss / float(step))
-
                 agent.avg_q_max, agent.avg_loss = 0, 0
-
         # 1000 에피소드마다 모델 저장
         if e % 1000 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
@@ -291,8 +281,9 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     # 환경과 DQN 에이전트 생성
     tetris = Env()
-    agent = DQNAgent(action_size=3)
-    #agent.load_model("./save_model/breakout_dqn.h5")
+    agent = DQNAgent(action_size=28)
+#    agent.load_model("./save_model/breakout_dqn.h5")
+    print("load models")
     """agent.predict_classes("./save_model/breakout_dqn.h5")"""
 
     #state 및 history 정의
@@ -309,33 +300,38 @@ if __name__ == "__main__":
         #모델 저장하기
         if epi % 50 == 0:
             agent.model.save_weights("./save_model/breakout_dqn.h5")
+            print("save model")
         while True:
             end_time = time.time()
             if end_time - action_time >= ACTION_VELCOCITY:
                 # 바로 전 4개의 상태로 행동을 선택
-                global_step += 1
-                step += 1
-                action = agent.get_action(history)
-                reward = tetris.step(action)
+                #print(tetris.zero_action)
+                if tetris.zero_action == 0 :
+                    global_step += 1
+                    step += 1
+                    action = agent.get_action(history)
+                    reward = tetris.step(action)
 
-                # 다음 상태 전처리
-                next_state = pre_processing(tetris.map, tetris._get_curr_block_pos())
-                next_state = np.reshape([next_state], (1, 84, 84, 1))
-                next_history = np.append(next_state, history[:, :, :, :3], axis=3)
+                    # 다음 상태 전처리
+                    next_state = pre_processing(tetris.map, tetris._get_curr_block_pos())
+                    next_state = np.reshape([next_state], (1, 84, 84, 1))
+                    next_history = np.append(next_state, history[:, :, :, :3], axis=3)
 
-                agent.avg_q_max += np.amax(agent.model.predict(np.float32(history / 255.))[0])
-                agent.append_sample(history, action, reward, next_history)
+                    agent.avg_q_max += np.amax(agent.model.predict(np.float32(history / 255.))[0])
+                    agent.append_sample(history, action, reward, next_history)
 
-                if len(agent.memory) >= agent.train_start:
-                    agent.train_model()
+                    if len(agent.memory) >= agent.train_start:
+                        agent.train_model()
 
-                # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
-                if global_step % agent.update_target_rate == 0:
-                    agent.update_target_model()
+                    # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
+                    if global_step % agent.update_target_rate == 0:
+                        agent.update_target_model()
 
-                history = next_history
+                    history = next_history
 
-                action_time = time.time()
+                    action_time = time.time()
+                #else:
+                    #tetris.step(0)
 
             if end_time - start_time >= GAME_VELOCTY:
                 # game over
@@ -360,4 +356,3 @@ if __name__ == "__main__":
                 else:
                     buffer = tetris.step(0)
                 start_time = time.time()
-
