@@ -13,7 +13,7 @@ from keras.models import Sequential
 from keras.utils import np_utils
 
 import matplotlib.pyplot as plt
-
+import os
 import numpy as np
 EPISODE = 50000
 GAME_VELOCTY = 0.000001
@@ -279,87 +279,94 @@ if __name__ == "__main__":
 """
 
 if __name__ == "__main__":
-    # 환경과 DQN 에이전트 생성
-    tetris = Env()
-    agent = DQNAgent(action_size=28)
-#    agent.load_model("./save_model/breakout_dqn.h5")
-    print("load models")
-    """agent.predict_classes("./save_model/breakout_dqn.h5")"""
+    pid = os.fork()
+    if pid == 0:
+        os.system('./test.py')
+        print('Print execute')
 
-    #state 및 history 정의
-    state = pre_processing(tetris.map, tetris._get_curr_block_pos())
-    history = np.stack((state, state, state, state), axis = 2)
-    history = np.reshape([history], (1, 84, 84, 4))
+    else :
+        print('AI execute')
+        # 환경과 DQN 에이전트 생성
+        tetris = Env()
+        agent = DQNAgent(action_size=28)
+        #    agent.load_model("./save_model/breakout_dqn.h5")
+        print("load models")
+        """agent.predict_classes("./save_model/breakout_dqn.h5")"""
 
-    start_time = time.time()
-    action_time = time.time()
-    global_step = 0
+        #state 및 history 정의
+        state = pre_processing(tetris.map, tetris._get_curr_block_pos())
+        history = np.stack((state, state, state, state), axis = 2)
+        history = np.reshape([history], (1, 84, 84, 4))
 
-    for epi in range(EPISODE):
-        step = 0
-        #모델 저장하기
-        if epi % 50 == 0:
-            agent.model.save_weights("./save_model/breakout_dqn.h5")
-            print("save model")
-        while True:
-            """
-            #테트리스 모양 출력
-            for i in range(0, 20):
-                print(tetris.map[i])
-            print('\n\n')
-            """
+        start_time = time.time()
+        action_time = time.time()
+        global_step = 0
 
-            end_time = time.time()
-            if end_time - action_time >= ACTION_VELCOCITY:
-                # 바로 전 4개의 상태로 행동을 선택
-                #print(tetris.zero_action)
-                if tetris.zero_action == 0 :
-                    global_step += 1
-                    step += 1
-                    action = agent.get_action(history)
-                    reward = tetris.step(action)
+        for epi in range(EPISODE):
+            step = 0
+            #모델 저장하기
+            if epi % 50 == 0:
+                agent.model.save_weights("./save_model/breakout_dqn.h5")
+                print("save model")
+            while True:
+                """
+                #테트리스 모양 출력
+                for i in range(0, 20):
+                    print(tetris.map[i])
+                print('\n\n')
+                """
 
-                    # 다음 상태 전처리
-                    next_state = pre_processing(tetris.map, tetris._get_curr_block_pos())
-                    next_state = np.reshape([next_state], (1, 84, 84, 1))
-                    next_history = np.append(next_state, history[:, :, :, :3], axis=3)
+                end_time = time.time()
+                if end_time - action_time >= ACTION_VELCOCITY:
+                    # 바로 전 4개의 상태로 행동을 선택
+                    #print(tetris.zero_action)
+                    if tetris.zero_action == 0 :
+                        global_step += 1
+                        step += 1
+                        action = agent.get_action(history)
+                        reward = tetris.step(action)
 
-                    agent.avg_q_max += np.amax(agent.model.predict(np.float32(history / 255.))[0])
-                    agent.append_sample(history, action, reward, next_history)
+                        # 다음 상태 전처리
+                        next_state = pre_processing(tetris.map, tetris._get_curr_block_pos())
+                        next_state = np.reshape([next_state], (1, 84, 84, 1))
+                        next_history = np.append(next_state, history[:, :, :, :3], axis=3)
 
-                    if len(agent.memory) >= agent.train_start:
-                        agent.train_model()
+                        agent.avg_q_max += np.amax(agent.model.predict(np.float32(history / 255.))[0])
+                        agent.append_sample(history, action, reward, next_history)
 
-                    # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
-                    if global_step % agent.update_target_rate == 0:
-                        agent.update_target_model()
+                        if len(agent.memory) >= agent.train_start:
+                            agent.train_model()
 
-                    history = next_history
+                        # 일정 시간마다 타겟모델을 모델의 가중치로 업데이트
+                        if global_step % agent.update_target_rate == 0:
+                            agent.update_target_model()
 
-                    action_time = time.time()
-                #else:
-                    #tetris.step(0)
+                        history = next_history
 
-            if end_time - start_time >= GAME_VELOCTY:
-                # game over
-                if tetris.is_game_end():
-                    '''
-                    if global_step > agent.train_start:
-                        stats = [tetris.score, agent.avg_q_max / float(global_step), global_step,
-                                 agent.avg_loss / float(global_step)]
-                        for i in range(len(stats)):
-                            agent.sess.run(agent.update_ops[i], feed_dict={
-                                agent.summary_placeholders[i]: float(stats[i])
-                            })
-                        summary_str = agent.sess.run(agent.summary_op)
-                        agent.summary_writer.add_summary(summary_str, epi + 1)
-                    '''
-                    print('episode:{}, score:{}, epsilon:{}, global step:{}, avg_qmax:{}, memory:{}'.
-                          format(epi, tetris.score, agent.epsilon, global_step,
-                                 agent.avg_q_max / float(step), len(agent.memory)))
-                    tetris.reset()
-                    agent.avg_q_max, agent.avg_loss = 0, 0
-                    break
-                else:
-                    buffer = tetris.step(0)
-                start_time = time.time()
+                        action_time = time.time()
+                    #else:
+                        #tetris.step(0)
+
+                if end_time - start_time >= GAME_VELOCTY:
+                    # game over
+                    if tetris.is_game_end():
+                        '''
+                        if global_step > agent.train_start:
+                            stats = [tetris.score, agent.avg_q_max / float(global_step), global_step,
+                                     agent.avg_loss / float(global_step)]
+                            for i in range(len(stats)):
+                                agent.sess.run(agent.update_ops[i], feed_dict={
+                                    agent.summary_placeholders[i]: float(stats[i])
+                                })
+                            summary_str = agent.sess.run(agent.summary_op)
+                            agent.summary_writer.add_summary(summary_str, epi + 1)
+                        '''
+                        print('episode:{}, score:{}, epsilon:{}, global step:{}, avg_qmax:{}, memory:{}'.
+                              format(epi, tetris.score, agent.epsilon, global_step,
+                                     agent.avg_q_max / float(step), len(agent.memory)))
+                        tetris.reset()
+                        agent.avg_q_max, agent.avg_loss = 0, 0
+                        break
+                    else:
+                        buffer = tetris.step(0)
+                    start_time = time.time()

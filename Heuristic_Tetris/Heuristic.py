@@ -2,7 +2,6 @@
 # Run this file to run the engine according to an analytic policy.
 
 import time
-
 from tetris_heuristic import TetrisEngine
 ##from tetris_qt import *
 
@@ -142,12 +141,18 @@ if __name__ == '__main__':
     """
     engine = TetrisEngine(width=10, height=20)
     steps = compute_optimal_steps(engine)
-
     #engine.draw_board()
+    a = input()
     while True:
+        if engine.line >= 10:
+            break
         steps = compute_optimal_steps(engine)
         for step in steps:
             engine.step(step)
             print(engine)
-            time.sleep(0.05)
+            time.sleep(0.1)
+
+    print("\nAI is Finish!!!")
+
+
 

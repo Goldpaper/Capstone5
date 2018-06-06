@@ -315,20 +315,31 @@ if __name__ == '__main__':
     engine = TetrisEngine(10, 20)
     actions = Actions()
 
+    """
+    'a': actions.LEFT,
+    'd': actions.RIGHT,
+    'w': actions.ROTATE_LEFT,
+    's': actions.ROTATE_RIGHT,
+    'z': actions.HARD_DROP,
+    'x': actions.SOFT_DROP,
+    """
     # Maps keys to their corresponding actions.
     key_map = {
-        'a': actions.LEFT,
-        'd': actions.RIGHT,
-        'w': actions.ROTATE_LEFT,
-        's': actions.ROTATE_RIGHT,
-        'z': actions.HARD_DROP,
-        'x': actions.SOFT_DROP,
+        'j': actions.LEFT,
+        'l': actions.RIGHT,
+        'i': actions.ROTATE_LEFT,
+        'k': actions.HARD_DROP,
+        '1': actions.ROTATE_RIGHT,
+        '2': actions.SOFT_DROP,
     }
     print(engine)
+    a = input()
     while True:
         action = getch()
         if action not in key_map:
             if action == 'q':
+                break
+            if engine.line >= 10:
                 break
             print('Invalid move: {}'.format(action))
             print('Possible: {}'.format(set(key_map.keys())))
@@ -337,3 +348,7 @@ if __name__ == '__main__':
             engine.step(key_map[action])
             print(engine)
             print('Score: {}'.format(engine.score))
+
+    if action != 'q':
+        print("\nPlayer is Winner!!!")
+

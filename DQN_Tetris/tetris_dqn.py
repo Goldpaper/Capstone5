@@ -418,7 +418,7 @@ class Env(tk.Tk):
             ret += PLUS_SCORE * break_cnt
             self.canvas.itemconfigure(self.score_board,
                                   text = basic_score_str + str(int(self.score)))
-            print(ret)
+            #print(ret)
             return ret
 
         # move
