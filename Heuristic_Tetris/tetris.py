@@ -4,6 +4,9 @@
 import numpy as np
 import random
 import time
+import os
+import sys
+import socket
 
 class Shapes(object):
     T = 0
@@ -44,7 +47,6 @@ class Actions(object):
     ROTATE_LEFT = 4
     ROTATE_RIGHT = 5
     ROTATES = (4, 5)
-
     def __init__(self):
         self.FUNCTIONS = {
             self.LEFT: self.left,
@@ -132,7 +134,7 @@ class TetrisEngine(object):
         self.actions = Actions()
 
         # Variables for running the engine.
-        self.time = -1
+        self.time2 = -1
         self.score = -1
         self.combo_counter = 0
         self.cleared_lines = 0
@@ -143,7 +145,7 @@ class TetrisEngine(object):
         self.deaths = 0
         self.dead = False
         self.line = 0
-
+        self.timer = 0
         # Used for generating shapes in a non-iid way.
         self._shape_counts = [0] * len(self.shapes)
 
@@ -242,12 +244,18 @@ class TetrisEngine(object):
         self.dead = False
         act_params = (self.shape, self.anchor, self.board)
         self.shape, self.anchor = self.actions[action](*act_params)
-        self.time += 1
+        self.time2 += 1
 
-        # Drops once every 5 steps, unless it was a hard drop.
-        if action not in self.actions.DROPS:
+        t = time.time()
+        if self.timer < t:
             act_params = (self.shape, self.anchor, self.board)
             self.shape, self.anchor = self.actions.soft_drop(*act_params)
+            self.timer = t+0.3
+
+        # Drops once every 5 steps, unless it was a hard drop.
+        #if action not in self.actions.DROPS:
+        #    act_params = (self.shape, self.anchor, self.board)
+        #    self.shape, self.anchor = self.actions.soft_drop(*act_params)
 
         if self._has_dropped():
             self.set_piece()
@@ -266,7 +274,7 @@ class TetrisEngine(object):
             return float(self.score - prev_score) * 0.01
 
     def clear(self):
-        self.time = 0
+        self.time2 = 0
         self.score = 0
         self._new_piece()
         self.board[:] = 0
@@ -287,10 +295,10 @@ class TetrisEngine(object):
 
     def serialize_board(self, board, include_score=True):
         board = np.squeeze(board)
-        s = ['o' + '-' * board.shape[0] + 'o']
-        f = lambda i: '|' + ''.join('O' if j else ' ' for j in i) + '|'
+        s = ['o' + '--' * board.shape[0] + 'o']
+        f = lambda i: '|' + ''.join('□ ' if j else '  ' for j in i) + '|'
         s += [f(i) for i in board.T]
-        s += ['o' + '-' * board.shape[0] + 'o']
+        s += ['o' + '--' * board.shape[0] + 'o']
         return '\n'.join(s)
 
         """
@@ -315,14 +323,7 @@ if __name__ == '__main__':
     engine = TetrisEngine(10, 20)
     actions = Actions()
 
-    """
-    'a': actions.LEFT,
-    'd': actions.RIGHT,
-    'w': actions.ROTATE_LEFT,
-    's': actions.ROTATE_RIGHT,
-    'z': actions.HARD_DROP,
-    'x': actions.SOFT_DROP,
-    """
+
     # Maps keys to their corresponding actions.
     key_map = {
         'j': actions.LEFT,
@@ -330,10 +331,48 @@ if __name__ == '__main__':
         'i': actions.ROTATE_LEFT,
         'k': actions.HARD_DROP,
         '1': actions.ROTATE_RIGHT,
-        '2': actions.SOFT_DROP,
+        'm': actions.SOFT_DROP,
     }
-    print(engine)
+    os.system('clear')
+    print('게임을 시작합니다. 원하는 버튼을 누르세요.')
+    print('1. Single Play')
+    print('2. Multi Play (vs Human)')
+    print('3. Multi Play (vs AI)')
+    print('4. Exit')
     a = input()
+    os.system('clear')
+    if a == '1':
+        for i in range (5):
+            print('Single 게임을 시작합니다.')
+            print(5 - i)
+            time.sleep(1)
+            os.system('clear')
+    if a == '2':
+        print('사용 불가')
+        sys.exit(1)
+    if a == '3':
+        print('AI와의 게임을 시작합니다. 난이도를 선택해주세요.')
+        print('1. Very Easy')
+        print('2. Easy')
+        print('3. Normal')
+        print('4. Hard')
+        print('5. Very Hard')
+        b = input()
+        host = '127.0.0.1'
+        port = 9191
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((host,port))
+        os.system('clear')
+        for i in range (5):
+            print('AI와의 대결을 시작합니다.')
+            print(5 - i)
+            time.sleep(1)
+            os.system('clear')
+    if a == '4':
+        print('게임을 종료합니다')
+        sys.exit(1)
+    print(engine)
+    #print('Press <q> to quit')
     while True:
         action = getch()
         if action not in key_map:
@@ -341,14 +380,13 @@ if __name__ == '__main__':
                 break
             if engine.line >= 10:
                 break
-            print('Invalid move: {}'.format(action))
-            print('Possible: {}'.format(set(key_map.keys())))
-            print('Press <q> to quit')
+            #print('Invalid move: {}'.format(action))
+            #print('Possible: {}'.format(set(key_map.keys())))
+            #print('Press <q> to quit')
         else:
             engine.step(key_map[action])
             print(engine)
-            print('Score: {}'.format(engine.score))
-
-    if action != 'q':
-        print("\nPlayer is Winner!!!")
-
+            #print('Score: {}'.format(engine.score))
+        #print('Press <q> to quit')
+    #if action != 'q':
+        #print("\nPlayer is Winner!!!")

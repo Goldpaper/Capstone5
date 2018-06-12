@@ -287,10 +287,10 @@ class TetrisEngine(object):
 
     def serialize_board(self, board, include_score=True):
         board = np.squeeze(board)
-        s = ['o' + '-' * board.shape[0] + 'o']
-        f = lambda i: '|' + ''.join('O' if j else ' ' for j in i) + '|'
+        s = ['o' + '--' * board.shape[0] + 'o']
+        f = lambda i: '|' + ''.join('□ ' if j else '  ' for j in i) + '|'
         s += [f(i) for i in board.T]
-        s += ['o' + '-' * board.shape[0] + 'o']
+        s += ['o' + '--' * board.shape[0] + 'o']
         return '\n'.join(s)
 
         """
@@ -330,10 +330,10 @@ if __name__ == '__main__':
         if action not in key_map:
             if action == 'q':
                 break
-            print('Invalid move: {}'.format(action))
-            print('Possible: {}'.format(set(key_map.keys())))
-            print('Press <q> to quit')
+            #print('Invalid move: {}'.format(action))
+            #print('Possible: {}'.format(set(key_map.keys())))
         else:
             engine.step(key_map[action])
             print(engine)
             print('Score: {}'.format(engine.score))
+        #print('Press <q> to quit')

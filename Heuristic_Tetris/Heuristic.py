@@ -2,6 +2,8 @@
 # Run this file to run the engine according to an analytic policy.
 
 import time
+import socket
+import os
 from tetris_heuristic import TetrisEngine
 ##from tetris_qt import *
 
@@ -139,11 +141,25 @@ if __name__ == '__main__':
             print(app)
             time.sleep(0.05)
     """
+    os.system('clear')
     engine = TetrisEngine(width=10, height=20)
     steps = compute_optimal_steps(engine)
     #engine.draw_board()
-    a = input()
-    while True:
+
+    host = '127.0.0.1'
+    port = 9191
+    serv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serv_sock.bind((host,port))
+    serv_sock.listen(0)
+    clnt_sock, addr = serv_sock.accept()
+
+    os.system('clear')
+    for i in range(5):
+        print('AI와의 대결을 시작합니다.')
+        print(5 - i)
+        time.sleep(1)
+        os.system('clear')
+    while True :
         if engine.line >= 10:
             break
         steps = compute_optimal_steps(engine)
@@ -152,7 +168,8 @@ if __name__ == '__main__':
             print(engine)
             time.sleep(0.1)
 
-    print("\nAI is Finish!!!")
+    #clnt_sock.send("\nAWinner is AI!!!".encode())
+    print("\nAWinner is AI!!!")
 
 
 
